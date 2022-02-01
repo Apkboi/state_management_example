@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
+import 'package:state_management_example/blocs/movies/movies_bloc.dart';
+import 'package:state_management_example/blocs/movies/movies_event.dart';
+import 'package:state_management_example/blocs/movies/movies_state.dart';
 import 'package:state_management_example/view/widgets/moview_item_widget.dart';
 import 'package:state_management_example/viewmodel/movies_viewmodel.dart';
 
@@ -70,24 +74,57 @@ class MovieListWidget extends StatefulWidget {
 }
 
 class _MovieListWidgetState extends State<MovieListWidget> {
+  final MoviesBloc _bloc = MoviesBloc();
+
   @override
   void initState() {
+    _bloc.add(FetchMovieListEvent());
     super.initState();
   }
 
+  // @override
+  // Widget build(BuildContext context) {
+  //   var moviesViewmodel = Provider.of<MoviesViewModel>(context, listen: true);
+  //   return moviesViewmodel.movieListState == MovieListState.loaded
+  //       ? ListView.builder(
+  //           physics: const BouncingScrollPhysics(),
+  //           padding: const EdgeInsets.only(top: 32.0 * 3, right: 16, left: 16),
+  //           itemCount: 6,
+  //           itemBuilder: (context, index) {
+  //             return MovieItemWidget(moviesViewmodel.movies[index]);
+  //           })
+  //       : moviesViewmodel.movieListState == MovieListState.loading
+  //           ? const Center(child: CircularProgressIndicator())
+  //           : const SizedBox.shrink();
+  // }
+
   @override
   Widget build(BuildContext context) {
-    var moviesViewmodel = Provider.of<MoviesViewModel>(context, listen: true);
-    return moviesViewmodel.movieListState == MovieListState.loaded
-        ? ListView.builder(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.only(top: 32.0 * 3, right: 16, left: 16),
-            itemCount: 6,
-            itemBuilder: (context, index) {
-              return MovieItemWidget(moviesViewmodel.movies[index]);
-            })
-        : moviesViewmodel.movieListState == MovieListState.loading
-            ? const Center(child: CircularProgressIndicator())
-            : const SizedBox.shrink();
+    return BlocBuilder<MoviesBloc, MoviesState>(
+      bloc: _bloc,
+      builder: (context, state) {
+        if (state is MovieListLoadingState) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (state is FetchMovieListErrorState) {
+          return Center(
+            child: Text(state.error),
+          );
+        }
+
+        if (state is MovieListFetchedState) {
+          return ListView.builder(
+              physics: const BouncingScrollPhysics(),
+              padding:
+                  const EdgeInsets.only(top: 32.0 * 3, right: 16, left: 16),
+              itemCount: 6,
+              itemBuilder: (context, index) {
+                return MovieItemWidget(state.movies[index]);
+              });
+        }
+
+        return const SizedBox.shrink();
+      },
+    );
   }
 }
